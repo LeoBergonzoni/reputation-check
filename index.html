@@ -41,24 +41,6 @@
       <h1>🔍 Verifica la tua reputazione</h1>
       <p>Inserisci <strong>Nome e Cognome</strong> oppure una <strong>Ragione Sociale</strong>. Il sistema cerca notizie pubbliche e segnala contenuti potenzialmente negativi (indagini, condanne, ecc.) o positivi (assoluzioni, archiviazioni).</p>
 
-      <!-- CONFIG -->
-      <details>
-        <summary><strong>⚙️ Config (Google Custom Search)</strong></summary>
-        <div class="grid-2">
-          <div>
-            <label>API Key</label>
-            <input id="apiKey" type="password" placeholder="Es. AIzaSyD... (opzionale per demo)" />
-          </div>
-          <div>
-            <label>CX (Motore di ricerca programmabile)</label>
-            <input id="cx" type="text" placeholder="Es. 123abc456:defghi789 (opzionale per demo)" />
-          </div>
-        </div>
-        <p class="tiny">Suggerimento: crea un motore limitato a <em>Notizie</em> italiane per risultati più puliti.</p>
-      </details>
-
-      <div class="sep"></div>
-
       <!-- FORM -->
       <div class="row">
         <div>
@@ -78,7 +60,7 @@
             <option value="y1">Ultimo anno</option>
             <option value="m6">Ultimi 6 mesi</option>
             <option value="y2">Ultimi 2 anni</option>
-            <option value="">Tutti i periodi</option>
+            <option value="" selected>Tutti i periodi</option>
           </select>
         </div>
         <div>
@@ -100,20 +82,23 @@
 
 <script>
   // =========================
-  // CONFIG & VOCABOLARI
+  // VOCABOLARI
   // =========================
   const NEGATIVE_TERMS = [
-    "indagato","indagine","arresto","arrestato","truffa","truffatore","frode","condanna","condannato",
+    "indagato","indagine","indagini","arresto","arrestato","truffa","truffatore","frode","condanna","condannato",
     "procedimento penale","misura cautelare","avviso di garanzia","rinvio a giudizio","calunnia","diffamazione",
     "bancarotta","estorsione","corruzione","riciclaggio","associazione a delinquere","sequestro",
-    "revoca licenza","sanzione","procedura disciplinare","blacklist","scandalo"
+    "revoca licenza","sanzione","procedura disciplinare","blacklist","scandalo","inchiesta"
   ];
   const POSITIVE_TERMS = [
-    "assolto","assoluzione","prosciolto","proscioglimento","archiviazione","non luogo a procedere",
-    "riabilitazione","revoca misura","annullato","assolto con formula piena","prescrizione"
+    "assolto","assolta","assoluzione","assolto con formula piena",
+    "prosciolto","prosciolta","proscioglimento",
+    "archiviazione","archiviato","archiviata",
+    "non luogo a procedere","nlap",
+    "riabilitazione","revoca misura","annullato","annullata","prescrizione"
   ];
 
-  // Evidenzia parole chiave in una stringa
+  // Evidenzia parole chiave
   function highlight(text, terms) {
     if (!text) return "";
     let safe = text.replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -125,14 +110,13 @@
   }
   const escapeRegExp = (s)=> s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  // Heuristics: classifica una riga in base a parole chiave
+  // Classificazione (priorità al positivo)
   function classify(text){
     const t = (text||"").toLowerCase();
     const hasPos = POSITIVE_TERMS.some(w => t.includes(w.toLowerCase()));
+    if (hasPos) return "positivo";
     const hasNeg = NEGATIVE_TERMS.some(w => t.includes(w.toLowerCase()));
-    if (hasPos && !hasNeg) return "positivo";
-    if (hasNeg && !hasPos) return "negativo";
-    if (hasPos && hasNeg) return "neutro";
+    if (hasNeg) return "negativo";
     return "neutro";
   }
 
@@ -144,44 +128,21 @@
       else if (it._class === "negativo") neg++;
       else neu++;
     });
-    // semplice indice reputazionale: 100 base - (neg*20) + (pos*10)
     let score = Math.max(0, Math.min(100, 100 - (neg*20) + (pos*10)));
     return {pos,neg,neu,score};
   }
 
   // =========================
-  // RICERCA (Google CSE) o DEMO
+  // RICERCA (via Netlify Function)
   // =========================
-  async function searchWeb(query, dateRestrict, apiKey, cx){
-    if (!apiKey || !cx) {
-      // DEMO MODE: dati finti per provare l'interfaccia
-      await sleep(600);
-      return [
-        {title:"Assolto imprenditore dopo 3 anni di processo", link:"#", snippet:"Il tribunale ha assolto con formula piena l’imprenditore "+query+"."},
-        {title:"Indagato per frode fiscale, chiuse le indagini", link:"#", snippet: query+" era stato indagato nel 2021 per presunta frode."},
-        {title:"Archiviazione per il caso "+query, link:"#", snippet:"Disposta l’archiviazione delle accuse."},
-        {title:"Recensioni controverse su "+query, link:"#", snippet:"Alcuni commenti diffamatori sui forum."}
-      ];
-    }
-
-    const url = new URL("https://www.googleapis.com/customsearch/v1");
-    url.searchParams.set("key", apiKey);
-    url.searchParams.set("cx", cx);
-    url.searchParams.set("q", query);
-    url.searchParams.set("num", "10");
-    if (dateRestrict) url.searchParams.set("dateRestrict", dateRestrict);
-
-    const res = await fetch(url.toString());
-    if (!res.ok) throw new Error("Errore chiamata Google CSE: "+res.status);
+  async function searchWeb(query, dateRestrict) {
+    const params = new URLSearchParams({ q: query });
+    if (dateRestrict) params.set("dateRestrict", dateRestrict);
+    const res = await fetch(`/.netlify/functions/search?` + params.toString());
+    if (!res.ok) throw new Error("Errore chiamata funzione server");
     const data = await res.json();
-    return (data.items||[]).map(it=>({
-      title: it.title,
-      link: it.link,
-      snippet: it.snippet || (it.pagemap && it.pagemap.metatags && it.pagemap.metatags[0]?.description) || ""
-    }));
+    return data.items || [];
   }
-
-  const sleep = (ms)=> new Promise(r=>setTimeout(r,ms));
 
   // =========================
   // UI HANDLERS
@@ -193,33 +154,26 @@
     const name = document.getElementById("query").value.trim();
     const loc = document.getElementById("location").value.trim();
     const dateWindow = document.getElementById("dateWindow").value;
-    const apiKey = document.getElementById("apiKey").value.trim();
-    const cx = document.getElementById("cx").value.trim();
 
     if (!name) { alert("Inserisci un nome o un'azienda"); return; }
 
-    // Query arricchita: virgolette + eventuale località + parole trigger
     const qParts = [`"${name}"`];
     if (loc) qParts.push(loc);
-    qParts.push("(assolto OR prosciolto OR archiviazione OR indagato OR condannato OR processo)");
+    qParts.push("(assolto OR prosciolto OR archiviazione OR indagato OR indagine OR condannato OR processo)");
     const q = qParts.join(" ");
 
     runBtn.disabled = true; runBtn.textContent = "Analizzo...";
     out.innerHTML = "";
 
     try {
-      const rows = await searchWeb(q, dateWindow, apiKey, cx);
-      rows.forEach(r=>{
-        const cls = classify((r.title||"") + " " + (r.snippet||""));
-        r._class = cls;
-      });
-
+      const rows = await searchWeb(q, dateWindow); // dateWindow usa già valori compatibili (m6,y1,y2)
+      rows.forEach(r => r._class = classify(`${r.title||""} ${r.snippet||""}`));
       const summary = scoreSummary(rows);
       renderSummary(summary);
       renderList(rows);
       renderCTA(summary);
     } catch (e) {
-      out.innerHTML = `<p class="tiny">❌ ${e.message}. Verifica API Key/CX o prova la <em>demo</em> lasciando vuoti i campi Config.</p>`;
+      out.innerHTML = `<p class="tiny">❌ ${e.message}. Verifica la funzione Netlify e le variabili d'ambiente.</p>`;
     } finally {
       runBtn.disabled = false; runBtn.textContent = "Verifica la mia reputazione";
     }
