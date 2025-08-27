@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Verifica la tua reputazione</title>
+  <style>
+    :root { --bg:#0b132b; --soft:#1c2541; --ink:#e0e6f0; --muted:#9fb3c8; --accent:#3a86ff; --good:#38b000; --warn:#ffb703; --bad:#ef233c; }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial; }
+    .wrap { max-width:900px; margin:0 auto; padding:24px; }
+    .card { background:var(--soft); border-radius:14px; padding:20px; box-shadow:0 6px 20px rgba(0,0,0,.25); }
+    h1 { margin:6px 0 14px; font-size:1.6rem; }
+    p { color:var(--muted); line-height:1.55; }
+    label { display:block; margin:.6rem 0 .35rem; color:var(--ink); font-weight:600; }
+    input[type="text"], input[type="password"], input[type="search"], select {
+      width:100%; padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.08); background:#0f1b3d; color:var(--ink);
+    }
+    .row { display:flex; gap:12px; flex-wrap:wrap; }
+    .row > div { flex:1 1 240px; }
+    .btn { background:var(--accent); color:white; border:none; padding:12px 16px; border-radius:12px; cursor:pointer; font-weight:700; }
+    .btn:disabled { opacity:.6; cursor:not-allowed; }
+    .tiny { font-size:.85rem; color:var(--muted); }
+    .results { margin-top:18px; }
+    .pill { display:inline-block; padding:4px 10px; border-radius:999px; font-size:.75rem; font-weight:700; }
+    .neg { background:rgba(239,35,60,.18); color:#ffdada; border:1px solid rgba(239,35,60,.4); }
+    .pos { background:rgba(56,176,0,.18); color:#daf5d8; border:1px solid rgba(56,176,0,.4); }
+    .neu { background:rgba(255,183,3,.18); color:#fff0cc; border:1px solid rgba(255,183,3,.45); }
+    .score { font-weight:900; }
+    .item { padding:14px; border-radius:12px; background:#101b38; border:1px solid rgba(255,255,255,.06); margin:10px 0; }
+    .item a { color:#b8d1ff; text-decoration:underline; }
+    mark { background:rgba(239,35,60,.5); color:white; padding:0 .2em; border-radius:4px; }
+    .footer { margin-top:16px; font-size:.85rem; color:var(--muted); }
+    .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    @media (max-width:760px){ .grid-2 { grid-template-columns:1fr; } }
+    .sep { height:1px; background:rgba(255,255,255,.06); margin:16px 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>🔍 Verifica la tua reputazione</h1>
+      <p>Inserisci <strong>Nome e Cognome</strong> oppure una <strong>Ragione Sociale</strong>. Il sistema cerca notizie pubbliche e segnala contenuti potenzialmente negativi (indagini, condanne, ecc.) o positivi (assoluzioni, archiviazioni).</p>
+
+      <!-- CONFIG -->
+      <details>
+        <summary><strong>⚙️ Config (Google Custom Search)</strong></summary>
+        <div class="grid-2">
+          <div>
+            <label>API Key</label>
+            <input id="apiKey" type="password" placeholder="Es. AIzaSyD... (opzionale per demo)" />
+          </div>
+          <div>
+            <label>CX (Motore di ricerca programmabile)</label>
+            <input id="cx" type="text" placeholder="Es. 123abc456:defghi789 (opzionale per demo)" />
+          </div>
+        </div>
+        <p class="tiny">Suggerimento: crea un motore limitato a <em>Notizie</em> italiane per risultati più puliti.</p>
+      </details>
+
+      <div class="sep"></div>
+
+      <!-- FORM -->
+      <div class="row">
+        <div>
+          <label>Nome / Azienda</label>
+          <input id="query" type="search" placeholder='Es. "Mario Rossi" oppure "Rossi Srl"' />
+        </div>
+        <div>
+          <label>Località (opzionale)</label>
+          <input id="location" type="text" placeholder='Es. "Milano", "Roma"' />
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <div>
+          <label>Finestra temporale</label>
+          <select id="dateWindow">
+            <option value="y1">Ultimo anno</option>
+            <option value="m6">Ultimi 6 mesi</option>
+            <option value="y2">Ultimi 2 anni</option>
+            <option value="">Tutti i periodi</option>
+          </select>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button id="run" class="btn">Verifica la mia reputazione</button>
+        </div>
+      </div>
+
+      <p class="tiny">⚠️ Uso responsabile: i risultati sono indicativi e potrebbero contenere omonimie. Per una valutazione legale e un’eventuale rimozione, richiedi una consulenza dedicata.</p>
+
+      <div id="out" class="results"></div>
+
+      <div class="footer">
+        <div class="sep"></div>
+        <p>Vuoi sapere se questi contenuti si possono rimuovere? <a href="#" onclick="openLead()">Richiedi una consulenza gratuita</a>.</p>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // =========================
+  // CONFIG & VOCABOLARI
+  // =========================
+  const NEGATIVE_TERMS = [
+    "indagato","indagine","arresto","arrestato","truffa","truffatore","frode","condanna","condannato",
+    "procedimento penale","misura cautelare","avviso di garanzia","rinvio a giudizio","calunnia","diffamazione",
+    "bancarotta","estorsione","corruzione","riciclaggio","associazione a delinquere","sequestro",
+    "revoca licenza","sanzione","procedura disciplinare","blacklist","scandalo"
+  ];
+  const POSITIVE_TERMS = [
+    "assolto","assoluzione","prosciolto","proscioglimento","archiviazione","non luogo a procedere",
+    "riabilitazione","revoca misura","annullato","assolto con formula piena","prescrizione"
+  ];
+
+  // Evidenzia parole chiave in una stringa
+  function highlight(text, terms) {
+    if (!text) return "";
+    let safe = text.replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    terms.forEach(t=>{
+      const re = new RegExp(`\\b(${escapeRegExp(t)})\\b`,"gi");
+      safe = safe.replace(re, "<mark>$1</mark>");
+    });
+    return safe;
+  }
+  const escapeRegExp = (s)=> s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  // Heuristics: classifica una riga in base a parole chiave
+  function classify(text){
+    const t = (text||"").toLowerCase();
+    const hasPos = POSITIVE_TERMS.some(w => t.includes(w.toLowerCase()));
+    const hasNeg = NEGATIVE_TERMS.some(w => t.includes(w.toLowerCase()));
+    if (hasPos && !hasNeg) return "positivo";
+    if (hasNeg && !hasPos) return "negativo";
+    if (hasPos && hasNeg) return "neutro";
+    return "neutro";
+  }
+
+  // Punteggio complessivo
+  function scoreSummary(items){
+    let pos=0, neg=0, neu=0;
+    items.forEach(it=>{
+      if (it._class === "positivo") pos++;
+      else if (it._class === "negativo") neg++;
+      else neu++;
+    });
+    // semplice indice reputazionale: 100 base - (neg*20) + (pos*10)
+    let score = Math.max(0, Math.min(100, 100 - (neg*20) + (pos*10)));
+    return {pos,neg,neu,score};
+  }
+
+  // =========================
+  // RICERCA (Google CSE) o DEMO
+  // =========================
+  async function searchWeb(query, dateRestrict, apiKey, cx){
+    if (!apiKey || !cx) {
+      // DEMO MODE: dati finti per provare l'interfaccia
+      await sleep(600);
+      return [
+        {title:"Assolto imprenditore dopo 3 anni di processo", link:"#", snippet:"Il tribunale ha assolto con formula piena l’imprenditore "+query+"."},
+        {title:"Indagato per frode fiscale, chiuse le indagini", link:"#", snippet: query+" era stato indagato nel 2021 per presunta frode."},
+        {title:"Archiviazione per il caso "+query, link:"#", snippet:"Disposta l’archiviazione delle accuse."},
+        {title:"Recensioni controverse su "+query, link:"#", snippet:"Alcuni commenti diffamatori sui forum."}
+      ];
+    }
+
+    const url = new URL("https://www.googleapis.com/customsearch/v1");
+    url.searchParams.set("key", apiKey);
+    url.searchParams.set("cx", cx);
+    url.searchParams.set("q", query);
+    url.searchParams.set("num", "10");
+    if (dateRestrict) url.searchParams.set("dateRestrict", dateRestrict);
+
+    const res = await fetch(url.toString());
+    if (!res.ok) throw new Error("Errore chiamata Google CSE: "+res.status);
+    const data = await res.json();
+    return (data.items||[]).map(it=>({
+      title: it.title,
+      link: it.link,
+      snippet: it.snippet || (it.pagemap && it.pagemap.metatags && it.pagemap.metatags[0]?.description) || ""
+    }));
+  }
+
+  const sleep = (ms)=> new Promise(r=>setTimeout(r,ms));
+
+  // =========================
+  // UI HANDLERS
+  // =========================
+  const runBtn = document.getElementById("run");
+  const out = document.getElementById("out");
+
+  runBtn.addEventListener("click", async ()=>{
+    const name = document.getElementById("query").value.trim();
+    const loc = document.getElementById("location").value.trim();
+    const dateWindow = document.getElementById("dateWindow").value;
+    const apiKey = document.getElementById("apiKey").value.trim();
+    const cx = document.getElementById("cx").value.trim();
+
+    if (!name) { alert("Inserisci un nome o un'azienda"); return; }
+
+    // Query arricchita: virgolette + eventuale località + parole trigger
+    const qParts = [`"${name}"`];
+    if (loc) qParts.push(loc);
+    qParts.push("(assolto OR prosciolto OR archiviazione OR indagato OR condannato OR processo)");
+    const q = qParts.join(" ");
+
+    runBtn.disabled = true; runBtn.textContent = "Analizzo...";
+    out.innerHTML = "";
+
+    try {
+      const rows = await searchWeb(q, dateWindow, apiKey, cx);
+      rows.forEach(r=>{
+        const cls = classify((r.title||"") + " " + (r.snippet||""));
+        r._class = cls;
+      });
+
+      const summary = scoreSummary(rows);
+      renderSummary(summary);
+      renderList(rows);
+      renderCTA(summary);
+    } catch (e) {
+      out.innerHTML = `<p class="tiny">❌ ${e.message}. Verifica API Key/CX o prova la <em>demo</em> lasciando vuoti i campi Config.</p>`;
+    } finally {
+      runBtn.disabled = false; runBtn.textContent = "Verifica la mia reputazione";
+    }
+  });
+
+  function renderSummary({pos,neg,neu,score}){
+    const color = score>=80? "good" : score>=60? "warn" : "bad";
+    out.insertAdjacentHTML("beforeend", `
+      <div class="item">
+        <div><span class="pill pos">Positivi: ${pos}</span> &nbsp;
+             <span class="pill neg">Negativi: ${neg}</span> &nbsp;
+             <span class="pill neu">Neutri: ${neu}</span></div>
+        <p style="margin:.6rem 0 0;">Indice reputazionale: <span class="score" style="color:var(--${color});">${score}/100</span></p>
+      </div>
+    `);
+  }
+
+  function renderList(items){
+    if (!items.length){
+      out.insertAdjacentHTML("beforeend", `<p class="tiny">Nessun risultato trovato per i criteri selezionati.</p>`);
+      return;
+    }
+    items.forEach(it=>{
+      const tag = it._class==="negativo" ? `<span class="pill neg">Negativo</span>`
+               : it._class==="positivo" ? `<span class="pill pos">Positivo</span>`
+               : `<span class="pill neu">Neutro</span>`;
+      const hTitle = highlight(it.title, [...NEGATIVE_TERMS, ...POSITIVE_TERMS]);
+      const hSnip  = highlight(it.snippet, [...NEGATIVE_TERMS, ...POSITIVE_TERMS]);
+      out.insertAdjacentHTML("beforeend", `
+        <div class="item">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+            <a href="${it.link}" target="_blank" rel="noopener noreferrer">${hTitle}</a>
+            ${tag}
+          </div>
+          <p class="tiny" style="margin:.4rem 0 0;">${hSnip}</p>
+        </div>
+      `);
+    });
+  }
+
+  function renderCTA(summary){
+    let msg = "Hai risultati negativi: possiamo valutare rimozione, deindicizzazione o aggiornamento.";
+    if (summary.neg===0 && summary.pos>0) msg = "Ottimo: emergono esiti positivi (assoluzioni/archiviazioni). Possiamo aiutarti a farli prevalere e rimuovere vecchi contenuti.";
+    out.insertAdjacentHTML("beforeend", `
+      <div class="item">
+        <p>${msg}</p>
+        <button class="btn" onclick="openLead()">Richiedi una valutazione gratuita</button>
+      </div>
+    `);
+  }
+
+  function openLead(){
+    alert("Qui colleghi un form/CRM (es. MailerLite, HubSpot, Airtable).");
+  }
+</script>
+</body>
+</html>
