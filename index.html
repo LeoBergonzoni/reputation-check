@@ -32,9 +32,10 @@
             background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%; background-size:6px 6px, 6px 6px; background-repeat:no-repeat; }
 
     .row{ display:flex; gap:12px; flex-wrap:wrap; }
-    .row > div{ flex:1 1 240px; }
+    .row > div{ flex:1 1 240px; min-width:0; }
 
-    .btn{ background:var(--accent); color:white; border:none; padding:12px 16px; border-radius:12px; cursor:pointer; font-weight:800; letter-spacing:.2px; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+    .btn, .btn:visited{ color:#fff !important; }
+
     .btn:disabled{ opacity:.6; cursor:not-allowed; }
     .btn.secondary{ background:transparent; border:1px solid rgba(255,255,255,.15); color:#b8d1ff; }
 
