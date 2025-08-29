@@ -2,29 +2,24 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <!-- Evita lo zoom automatico in Safari iOS quando si focussano i campi (per richiesta esplicita) -->
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <title>Verifica la tua reputazione</title>
-  <!-- Favicon emoji 🔍 come SVG inline -->
   <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="0.9em" font-size="90">🔍</text></svg>' />
   <style>
     :root{ --bg:#0b132b; --soft:#1c2541; --ink:#e0e6f0; --muted:#9fb3c8; --accent:#3a86ff; --good:#38b000; --warn:#ffb703; --bad:#ef233c; --field:#0f1b3d; }
-    /* Base */
     html,body{ height:100%; }
     body{ margin:0; background:var(--bg); color:var(--ink); font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial; -webkit-font-smoothing:antialiased; }
     .wrap{ max-width:900px; margin:0 auto; padding: clamp(16px, 2.5vw, 28px); }
     .card{ background:var(--soft); border-radius:16px; padding: clamp(16px, 2.5vw, 24px); box-shadow:0 12px 28px rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.05); }
 
-    /* Titoli e testo */
     h1{ margin:6px 0 12px; font-size:clamp(1.3rem, 2.2vw, 1.8rem); display:flex; align-items:center; gap:8px; }
     p{ color:var(--muted); line-height:1.6; }
 
-    /* Form dentro la cornice (app frame) */
     .form-shell{ background: rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:16px; margin-top:8px; }
     label{ display:block; margin:.55rem 0 .35rem; color:var(--ink); font-weight:600; }
     input[type="text"], input[type="password"], input[type="search"], select{
-      width:100%; padding:14px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.10); background:var(--field); color:var(--ink);
-      outline:none; font-size:16px; /* >=16px per evitare zoom iOS */
+      width:90%; padding:14px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.10); background:var(--field); color:var(--ink);
+      outline:none; font-size:16px;
       box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
     }
     input::placeholder{ color:#a9b8d6; }
@@ -34,10 +29,12 @@
     .row{ display:flex; gap:12px; flex-wrap:wrap; }
     .row > div{ flex:1 1 240px; min-width:0; }
 
-    .btn, .btn:visited{ color:#fff !important; }
-
+    .btn{ background:var(--accent); color:white; border:none; padding:12px 16px; border-radius:12px; cursor:pointer; font-weight:800; letter-spacing:.2px; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
     .btn:disabled{ opacity:.6; cursor:not-allowed; }
     .btn.secondary{ background:transparent; border:1px solid rgba(255,255,255,.15); color:#b8d1ff; }
+
+    /* Solo il bottone "valutazione gratuita" avrà testo bianco senza sfondo */
+    .btn.only-text{ background:none; border:none; color:#fff; font-weight:600; text-decoration:underline; padding:0; display:inline; }
 
     .tiny{ font-size:.92rem; color:var(--muted); }
     .results{ margin-top:18px; }
@@ -57,11 +54,8 @@
     }
     .sep{ height:1px; background:rgba(255,255,255,.06); margin:16px 0; }
 
-    /* Accessibilità & iOS niceties */
     :focus-visible{ outline:2px solid #b8d1ff; outline-offset:2px; border-radius:10px; }
     @supports (-webkit-touch-callout: none){ input, select{ font-size:16px; } }
-    
-    /* Safe areas per iPhone (evita tagli nelle aree curve) */
     .wrap{ padding-left: max(16px, env(safe-area-inset-left)); padding-right:max(16px, env(safe-area-inset-right)); }
   </style>
 </head>
@@ -71,7 +65,6 @@
       <h1>🔍 Verifica la tua reputazione</h1>
       <p>Inserisci <strong>Nome e Cognome</strong> oppure una <strong>Ragione Sociale</strong>. Il sistema cerca notizie pubbliche e segnala contenuti potenzialmente negativi (indagini, condanne, ecc.) o positivi (assoluzioni, archiviazioni).</p>
 
-      <!-- FORM dentro la cornice dell'app -->
       <div class="form-shell" role="form" aria-label="Form ricerca reputazione">
         <div class="row">
           <div>
@@ -116,24 +109,9 @@
   </div>
 
 <script>
-  // =========================
-  // VOCABOLARI
-  // =========================
-  const NEGATIVE_TERMS = [
-    "indagato","indagine","indagini","arresto","arrestato","truffa","truffatore","frode","condanna","condannato",
-    "procedimento penale","misura cautelare","avviso di garanzia","rinvio a giudizio","calunnia","diffamazione",
-    "bancarotta","estorsione","corruzione","riciclaggio","associazione a delinquere","sequestro",
-    "revoca licenza","sanzione","procedura disciplinare","blacklist","scandalo","inchiesta"
-  ];
-  const POSITIVE_TERMS = [
-    "assolto","assolta","assoluzione","assolto con formula piena",
-    "prosciolto","prosciolta","proscioglimento",
-    "archiviazione","archiviato","archiviata",
-    "non luogo a procedere","nlap",
-    "riabilitazione","revoca misura","annullato","annullata","prescrizione"
-  ];
+  const NEGATIVE_TERMS = ["indagato","indagine","indagini","arresto","arrestato","truffa","truffatore","frode","condanna","condannato","procedimento penale","misura cautelare","avviso di garanzia","rinvio a giudizio","calunnia","diffamazione","bancarotta","estorsione","corruzione","riciclaggio","associazione a delinquere","sequestro","revoca licenza","sanzione","procedura disciplinare","blacklist","scandalo","inchiesta"];
+  const POSITIVE_TERMS = ["assolto","assolta","assoluzione","assolto con formula piena","prosciolto","prosciolta","proscioglimento","archiviazione","archiviato","archiviata","non luogo a procedere","nlap","riabilitazione","revoca misura","annullato","annullata","prescrizione"];
 
-  // Evidenzia parole chiave
   function highlight(text, terms){
     if(!text) return "";
     let safe = text.replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -145,7 +123,6 @@
   }
   const escapeRegExp = (s)=> s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&');
 
-  // Classificazione (priorità al positivo)
   function classify(text){
     const t = (text||"").toLowerCase();
     const hasPos = POSITIVE_TERMS.some(w => t.includes(w.toLowerCase()));
@@ -155,7 +132,6 @@
     return "neutro";
   }
 
-  // Punteggio complessivo
   function scoreSummary(items){
     let pos=0, neg=0, neu=0;
     items.forEach(it=>{
@@ -167,9 +143,6 @@
     return {pos,neg,neu,score};
   }
 
-  // =========================
-  // RICERCA (via Netlify Function)
-  // =========================
   async function searchWeb(query, dateRestrict){
     const params = new URLSearchParams({ q: query });
     if (dateRestrict) params.set("dateRestrict", dateRestrict);
@@ -179,9 +152,6 @@
     return data.items || [];
   }
 
-  // =========================
-  // UI HANDLERS
-  // =========================
   const runBtn = document.getElementById("run");
   const out = document.getElementById("out");
 
@@ -192,7 +162,7 @@
 
     if (!name){ alert("Inserisci un nome o un'azienda"); return; }
 
-    const qParts = [`"${name}"`];
+    const qParts = [`\"${name}\"`];
     if (loc) qParts.push(loc);
     qParts.push("(assolto OR prosciolto OR archiviazione OR indagato OR indagine OR condannato OR processo)");
     const q = qParts.join(" ");
@@ -201,7 +171,7 @@
     out.innerHTML = "";
 
     try{
-      const rows = await searchWeb(q, dateWindow); // dateWindow usa già valori compatibili (m6,y1,y2)
+      const rows = await searchWeb(q, dateWindow);
       rows.forEach(r => r._class = classify(`${r.title||""} ${r.snippet||""}`));
       const summary = scoreSummary(rows);
       renderSummary(summary);
@@ -255,7 +225,7 @@
     out.insertAdjacentHTML("beforeend", `
       <div class="item">
         <p>${msg}</p>
-        <a class="btn" href="https://levalink.com/" target="_blank" rel="noopener noreferrer">Richiedi una valutazione gratuita</a>
+        <a class="btn only-text" href="https://levalink.com/" target="_blank" rel="noopener noreferrer">Richiedi una valutazione gratuita</a>
       </div>
     `);
   }
