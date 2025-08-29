@@ -2,37 +2,66 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <!-- Evita lo zoom automatico in Safari iOS quando si focussano i campi (per richiesta esplicita) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <title>Verifica la tua reputazione</title>
+  <!-- Favicon emoji 🔍 come SVG inline -->
+  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="0.9em" font-size="90">🔍</text></svg>' />
   <style>
-    :root { --bg:#0b132b; --soft:#1c2541; --ink:#e0e6f0; --muted:#9fb3c8; --accent:#3a86ff; --good:#38b000; --warn:#ffb703; --bad:#ef233c; }
-    body { margin:0; background:var(--bg); color:var(--ink); font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial; }
-    .wrap { max-width:900px; margin:0 auto; padding:24px; }
-    .card { background:var(--soft); border-radius:14px; padding:20px; box-shadow:0 6px 20px rgba(0,0,0,.25); }
-    h1 { margin:6px 0 14px; font-size:1.6rem; }
-    p { color:var(--muted); line-height:1.55; }
-    label { display:block; margin:.6rem 0 .35rem; color:var(--ink); font-weight:600; }
-    input[type="text"], input[type="password"], input[type="search"], select {
-      width:100%; padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.08); background:#0f1b3d; color:var(--ink);
+    :root{ --bg:#0b132b; --soft:#1c2541; --ink:#e0e6f0; --muted:#9fb3c8; --accent:#3a86ff; --good:#38b000; --warn:#ffb703; --bad:#ef233c; --field:#0f1b3d; }
+    /* Base */
+    html,body{ height:100%; }
+    body{ margin:0; background:var(--bg); color:var(--ink); font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial; -webkit-font-smoothing:antialiased; }
+    .wrap{ max-width:900px; margin:0 auto; padding: clamp(16px, 2.5vw, 28px); }
+    .card{ background:var(--soft); border-radius:16px; padding: clamp(16px, 2.5vw, 24px); box-shadow:0 12px 28px rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.05); }
+
+    /* Titoli e testo */
+    h1{ margin:6px 0 12px; font-size:clamp(1.3rem, 2.2vw, 1.8rem); display:flex; align-items:center; gap:8px; }
+    p{ color:var(--muted); line-height:1.6; }
+
+    /* Form dentro la cornice (app frame) */
+    .form-shell{ background: rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:16px; margin-top:8px; }
+    label{ display:block; margin:.55rem 0 .35rem; color:var(--ink); font-weight:600; }
+    input[type="text"], input[type="password"], input[type="search"], select{
+      width:100%; padding:14px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.10); background:var(--field); color:var(--ink);
+      outline:none; font-size:16px; /* >=16px per evitare zoom iOS */
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
     }
-    .row { display:flex; gap:12px; flex-wrap:wrap; }
-    .row > div { flex:1 1 240px; }
-    .btn { background:var(--accent); color:white; border:none; padding:12px 16px; border-radius:12px; cursor:pointer; font-weight:700; }
-    .btn:disabled { opacity:.6; cursor:not-allowed; }
-    .tiny { font-size:.85rem; color:var(--muted); }
-    .results { margin-top:18px; }
-    .pill { display:inline-block; padding:4px 10px; border-radius:999px; font-size:.75rem; font-weight:700; }
-    .neg { background:rgba(239,35,60,.18); color:#ffdada; border:1px solid rgba(239,35,60,.4); }
-    .pos { background:rgba(56,176,0,.18); color:#daf5d8; border:1px solid rgba(56,176,0,.4); }
-    .neu { background:rgba(255,183,3,.18); color:#fff0cc; border:1px solid rgba(255,183,3,.45); }
-    .score { font-weight:900; }
-    .item { padding:14px; border-radius:12px; background:#101b38; border:1px solid rgba(255,255,255,.06); margin:10px 0; }
-    .item a { color:#b8d1ff; text-decoration:underline; }
-    mark { background:rgba(239,35,60,.5); color:white; padding:0 .2em; border-radius:4px; }
-    .footer { margin-top:16px; font-size:.85rem; color:var(--muted); }
-    .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
-    @media (max-width:760px){ .grid-2 { grid-template-columns:1fr; } }
-    .sep { height:1px; background:rgba(255,255,255,.06); margin:16px 0; }
+    input::placeholder{ color:#a9b8d6; }
+    select{ appearance:none; -webkit-appearance:none; background-image: linear-gradient(45deg, transparent 50%, #b8d1ff 50%), linear-gradient(135deg, #b8d1ff 50%, transparent 50%);
+            background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%; background-size:6px 6px, 6px 6px; background-repeat:no-repeat; }
+
+    .row{ display:flex; gap:12px; flex-wrap:wrap; }
+    .row > div{ flex:1 1 240px; }
+
+    .btn{ background:var(--accent); color:white; border:none; padding:12px 16px; border-radius:12px; cursor:pointer; font-weight:800; letter-spacing:.2px; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+    .btn:disabled{ opacity:.6; cursor:not-allowed; }
+    .btn.secondary{ background:transparent; border:1px solid rgba(255,255,255,.15); color:#b8d1ff; }
+
+    .tiny{ font-size:.92rem; color:var(--muted); }
+    .results{ margin-top:18px; }
+    .pill{ display:inline-block; padding:4px 10px; border-radius:999px; font-size:.75rem; font-weight:700; }
+    .neg{ background:rgba(239,35,60,.18); color:#ffdada; border:1px solid rgba(239,35,60,.4); }
+    .pos{ background:rgba(56,176,0,.18); color:#daf5d8; border:1px solid rgba(56,176,0,.4); }
+    .neu{ background:rgba(255,183,3,.18); color:#fff0cc; border:1px solid rgba(255,183,3,.45); }
+    .score{ font-weight:900; }
+    .item{ padding:14px; border-radius:12px; background:#101b38; border:1px solid rgba(255,255,255,.06); margin:10px 0; }
+    .item a{ color:#b8d1ff; text-decoration:underline; }
+    mark{ background:rgba(239,35,60,.5); color:white; padding:0 .2em; border-radius:4px; }
+    .footer{ margin-top:16px; font-size:.95rem; color:var(--muted); }
+    .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media (max-width:760px){
+      .grid-2{ grid-template-columns:1fr; }
+      .btn.full{ width:100%; }
+    }
+    .sep{ height:1px; background:rgba(255,255,255,.06); margin:16px 0; }
+
+    /* Accessibilità & iOS niceties */
+    :focus-visible{ outline:2px solid #b8d1ff; outline-offset:2px; border-radius:10px; }
+    @supports (-webkit-touch-callout: none){ input, select{ font-size:16px; } }
+    
+    /* Safe areas per iPhone (evita tagli nelle aree curve) */
+    .wrap{ padding-left: max(16px, env(safe-area-inset-left)); padding-right:max(16px, env(safe-area-inset-right)); }
   </style>
 </head>
 <body>
@@ -41,41 +70,46 @@
       <h1>🔍 Verifica la tua reputazione</h1>
       <p>Inserisci <strong>Nome e Cognome</strong> oppure una <strong>Ragione Sociale</strong>. Il sistema cerca notizie pubbliche e segnala contenuti potenzialmente negativi (indagini, condanne, ecc.) o positivi (assoluzioni, archiviazioni).</p>
 
-      <!-- FORM -->
-      <div class="row">
-        <div>
-          <label>Nome / Azienda</label>
-          <input id="query" type="search" placeholder='Es. "Mario Rossi" oppure "Rossi Srl"' />
+      <!-- FORM dentro la cornice dell'app -->
+      <div class="form-shell" role="form" aria-label="Form ricerca reputazione">
+        <div class="row">
+          <div>
+            <label for="query">Nome / Azienda</label>
+            <input id="query" type="search" inputmode="search" autocomplete="name" placeholder='Es. "Mario Rossi" oppure "Rossi Srl"' />
+          </div>
+          <div>
+            <label for="location">Località (opzionale)</label>
+            <input id="location" type="text" inputmode="text" autocomplete="address-level2" placeholder='Es. "Milano", "Roma"' />
+          </div>
         </div>
-        <div>
-          <label>Località (opzionale)</label>
-          <input id="location" type="text" placeholder='Es. "Milano", "Roma"' />
+
+        <div class="row" style="margin-top:8px; align-items:flex-end;">
+          <div>
+            <label for="dateWindow">Finestra temporale</label>
+            <select id="dateWindow">
+              <option value="y1">Ultimo anno</option>
+              <option value="m6">Ultimi 6 mesi</option>
+              <option value="y2">Ultimi 2 anni</option>
+              <option value="" selected>Tutti i periodi</option>
+            </select>
+          </div>
+          <div>
+            <label>&nbsp;</label>
+            <button id="run" class="btn full">Verifica la mia reputazione</button>
+          </div>
         </div>
       </div>
 
-      <div class="row" style="margin-top:8px;">
-        <div>
-          <label>Finestra temporale</label>
-          <select id="dateWindow">
-            <option value="y1">Ultimo anno</option>
-            <option value="m6">Ultimi 6 mesi</option>
-            <option value="y2">Ultimi 2 anni</option>
-            <option value="" selected>Tutti i periodi</option>
-          </select>
-        </div>
-        <div>
-          <label>&nbsp;</label>
-          <button id="run" class="btn">Verifica la mia reputazione</button>
-        </div>
-      </div>
-
-      <p class="tiny">⚠️ Uso responsabile: i risultati sono indicativi e potrebbero contenere omonimie. Per una valutazione legale e un’eventuale rimozione, richiedi una consulenza dedicata.</p>
+      <p class="tiny">⚠️ Uso responsabile: i risultati sono indicativi e potrebbero contenere omonimie. Per una valutazione legale e un’eventuale rimozione, puoi richiedere una consulenza dedicata.</p>
 
       <div id="out" class="results"></div>
 
       <div class="footer">
         <div class="sep"></div>
-        <p>Vuoi sapere se questi contenuti si possono rimuovere? <a href="#" onclick="openLead()">Richiedi una consulenza gratuita</a>.</p>
+        <p>
+          Vuoi sapere se questi contenuti si possono rimuovere?
+          <a class="btn secondary" href="https://levalink.com/" target="_blank" rel="noopener noreferrer">Richiedi una consulenza gratuita</a>
+        </p>
       </div>
     </div>
   </div>
@@ -99,8 +133,8 @@
   ];
 
   // Evidenzia parole chiave
-  function highlight(text, terms) {
-    if (!text) return "";
+  function highlight(text, terms){
+    if(!text) return "";
     let safe = text.replace(/</g,"&lt;").replace(/>/g,"&gt;");
     terms.forEach(t=>{
       const re = new RegExp(`\\b(${escapeRegExp(t)})\\b`,"gi");
@@ -108,7 +142,7 @@
     });
     return safe;
   }
-  const escapeRegExp = (s)=> s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escapeRegExp = (s)=> s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&');
 
   // Classificazione (priorità al positivo)
   function classify(text){
@@ -135,7 +169,7 @@
   // =========================
   // RICERCA (via Netlify Function)
   // =========================
-  async function searchWeb(query, dateRestrict) {
+  async function searchWeb(query, dateRestrict){
     const params = new URLSearchParams({ q: query });
     if (dateRestrict) params.set("dateRestrict", dateRestrict);
     const res = await fetch(`/.netlify/functions/search?` + params.toString());
@@ -155,7 +189,7 @@
     const loc = document.getElementById("location").value.trim();
     const dateWindow = document.getElementById("dateWindow").value;
 
-    if (!name) { alert("Inserisci un nome o un'azienda"); return; }
+    if (!name){ alert("Inserisci un nome o un'azienda"); return; }
 
     const qParts = [`"${name}"`];
     if (loc) qParts.push(loc);
@@ -165,16 +199,16 @@
     runBtn.disabled = true; runBtn.textContent = "Analizzo...";
     out.innerHTML = "";
 
-    try {
+    try{
       const rows = await searchWeb(q, dateWindow); // dateWindow usa già valori compatibili (m6,y1,y2)
       rows.forEach(r => r._class = classify(`${r.title||""} ${r.snippet||""}`));
       const summary = scoreSummary(rows);
       renderSummary(summary);
       renderList(rows);
       renderCTA(summary);
-    } catch (e) {
+    }catch(e){
       out.innerHTML = `<p class="tiny">❌ ${e.message}. Verifica la funzione Netlify e le variabili d'ambiente.</p>`;
-    } finally {
+    }finally{
       runBtn.disabled = false; runBtn.textContent = "Verifica la mia reputazione";
     }
   });
@@ -220,13 +254,9 @@
     out.insertAdjacentHTML("beforeend", `
       <div class="item">
         <p>${msg}</p>
-        <button class="btn" onclick="openLead()">Richiedi una valutazione gratuita</button>
+        <a class="btn" href="https://levalink.com/" target="_blank" rel="noopener noreferrer">Richiedi una valutazione gratuita</a>
       </div>
     `);
-  }
-
-  function openLead(){
-    alert("Qui colleghi un form/CRM (es. MailerLite, HubSpot, Airtable).");
   }
 </script>
 </body>
